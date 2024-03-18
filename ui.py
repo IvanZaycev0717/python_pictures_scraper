@@ -17,16 +17,22 @@ class UI(tk.Tk):
         self.resizable(False, False)
 
         # Classes instances
-        self.search_frame = SearchFrame(self, self.loop)
+        self.search_frame = SearchFrame(self, self.loop, self.update_parcing_frame_data)
         self.search_frame.pack(pady=30)
-        search_data = self.search_frame.get_entry_data()
-        self.parsing_frame = ParsingFrame(self, 5)
+        search_data = len(self.search_frame.links)
+        self.parsing_frame = ParsingFrame(self, search_data)
+    
+    def update_parcing_frame_data(self):
+        pictures_amount = len(self.search_frame.links)
+        self.parsing_frame.pictures_amount_var.set(pictures_amount)
+        self.parsing_frame.pictures_spin_box.configure(to=pictures_amount)
 
 
 class SearchFrame(ttk.Frame):
-    def __init__(self, parent, loop):
+    def __init__(self, parent, loop, update_parcing_frame_data):
         super().__init__(parent)
         self.loop = loop
+        self.update_parcing_frame_data = update_parcing_frame_data
         self.links = set()
 
         # Grid for widgets
@@ -58,11 +64,13 @@ class SearchFrame(ttk.Frame):
         return self.search_data.get()
 
     def get_links(self):
-        links = LinksGetter(loop, self.add_links)
+        links = LinksGetter(loop, self.add_links, self.search_data.get())
         links.start()
     
     def add_links(self, link):
         self.links.add(link)
+        print(self.links)
+        self.update_parcing_frame_data()
 
 
 class ParsingFrame(ttk.Frame):
@@ -102,7 +110,7 @@ class ParsingFrame(ttk.Frame):
 
         # row 3
         how_many_label = ttk.Label(self, text='Сколько картинок: ')
-        pictures_spin_box = ttk.Spinbox(self, from_=1, to=self.pictures_amount)
+        self.pictures_spin_box = ttk.Spinbox(self, from_=1, to=self.pictures_amount)
 
         # row 4
         begin_button = ttk.Button(self, text='Начать')
@@ -135,7 +143,7 @@ class ParsingFrame(ttk.Frame):
 
         # row 3
         how_many_label.grid(row=3, column=0)
-        pictures_spin_box.grid(row=3, column=1)
+        self.pictures_spin_box.grid(row=3, column=1)
 
         # row 4
         begin_button.grid(row=4, column=1)

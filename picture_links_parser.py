@@ -1,19 +1,18 @@
 import aiohttp
 import asyncio
-from pprint import pprint
 
 from bs4 import BeautifulSoup
 
-url = rf'https://www.flickr.com/search/?text=sky'
+from settings import PHOTO_CONTAINER, PHOTO_CLASS, URL
 
 
 class LinksGetter:
-    def __init__(self, loop, add_links) -> None:
-        self._completed_requests= 0
+    def __init__(self, loop, add_links, search_word) -> None:
         self._get_links_future = None
         self._loop = loop
         self.add_links = add_links
-    
+        self.url = rf'{URL + search_word}'
+
     def start(self):
         future = asyncio.run_coroutine_threadsafe(self.get_html(), self._loop)
         self._get_links_future = future
@@ -24,7 +23,7 @@ class LinksGetter:
 
     def parse_html_to_get_links(self, html):
         soup = BeautifulSoup(html, 'lxml')
-        box = soup.find_all('div', class_='photo-list-photo-container')
+        box = soup.find_all(PHOTO_CONTAINER, class_=PHOTO_CLASS)
         for tag in box:
             img_tag = tag.find('img')
             src_value = img_tag.get('src')
@@ -32,7 +31,6 @@ class LinksGetter:
 
     async def get_html(self):
         async with aiohttp.ClientSession() as session:
-            async with session.get(url) as response:
+            async with session.get(self.url) as response:
                 html = await response.text()
         self.parse_html_to_get_links(html)
-        
