@@ -1,28 +1,33 @@
+import asyncio
 import tkinter as tk
 from tkinter import ttk
 from tkinter import filedialog
+from threading import Thread
 
 from settings import (TITLE, SIZE)
+from picture_links_parser import LinksGetter
 
 class UI(tk.Tk):
-    def __init__(self, title, size):
+    def __init__(self, title, size, loop):
         # Setup
         super().__init__()
+        self.loop = loop
         self.title(title)
         self.geometry(f'{size[0]}x{size[1]}')
         self.resizable(False, False)
 
-        self.search_frame = SearchFrame(self)
+        # Classes instances
+        self.search_frame = SearchFrame(self, self.loop)
         self.search_frame.pack(pady=30)
         search_data = self.search_frame.get_entry_data()
         self.parsing_frame = ParsingFrame(self, 5)
 
 
 class SearchFrame(ttk.Frame):
-    def __init__(self, parent):
+    def __init__(self, parent, loop):
         super().__init__(parent)
-        self.borderwidth = 10
-        self.relief = tk.RIDGE
+        self.loop = loop
+        self.links = set()
 
         # Grid for widgets
         self.rowconfigure((0, 1), weight=1)
@@ -38,7 +43,11 @@ class SearchFrame(ttk.Frame):
         # create the widgets
         self.search_label = ttk.Label(self, text='Что ищем?')
         search_entry = ttk.Entry(self, textvariable=self.search_data)
-        search_button = ttk.Button(self, text='Найти', command=self.get_entry_data)
+        search_button = ttk.Button(
+            master=self,
+            text='Найти',
+            command=self.get_links,
+            )
 
         # place into the grid
         self.search_label.grid(row=0, column=0)
@@ -47,6 +56,14 @@ class SearchFrame(ttk.Frame):
     
     def get_entry_data(self):
         return self.search_data.get()
+
+    def get_links(self):
+        links = LinksGetter(loop, self.add_links)
+        links.start()
+    
+    def add_links(self, link):
+        self.links.add(link)
+
 
 class ParsingFrame(ttk.Frame):
     def __init__(self, parent, pictures_amount):
@@ -146,8 +163,20 @@ class ParsingFrame(ttk.Frame):
             case _: return 'картинок'
 
 
+class ThreadedEventLoop(Thread):
+    def __init__(self, loop):
+        super().__init__()
+        self._loop = loop
+        self.daemon = True
 
+    def run(self):
+        self._loop.run_forever()
 
 if __name__ == '__main__':
-    app = UI(TITLE, SIZE)
+    loop = asyncio.new_event_loop()
+
+    asyncio_thread = ThreadedEventLoop(loop)
+    asyncio_thread.start()
+
+    app = UI(TITLE, SIZE, loop)
     app.mainloop()
