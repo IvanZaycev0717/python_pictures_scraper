@@ -8,12 +8,13 @@ from aiohttp import ClientSession
 
 
 class PictureSaver:
-    def __init__(self, loop, links_array, save_path, total_requests, callback):
+    def __init__(self, loop, links_array, picture_name, save_path, total_requests, callback):
         self._loop = loop
         self.completed_requests = 0
         self._load_saver_future = None
         self.links_array = links_array
         self.total_requests = total_requests
+        self.picture_name = picture_name
         self.save_path = save_path
         self.callback = callback
         self.refresh_rate = self.refresh_rate_corrector()
@@ -39,7 +40,7 @@ class PictureSaver:
             response = await session.get(url)
             if response.status == HTTPStatus.OK:
                 image_data = await response.read()
-                with open(f'{self.save_path}/{self.completed_requests}.jpg', 'wb') as file:
+                with open(f'{self.save_path}/{self.picture_name}{self.completed_requests}.jpg', 'wb') as file:
                     file.write(image_data)
                 logging.info(f'Успешное сохранение картинки {url}')
             else:

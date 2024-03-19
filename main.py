@@ -22,16 +22,11 @@ class UI(tk.Tk):
         self.loop = loop
         self.loop_for_saves = loop_for_saver
         self.__links_array = set()
+        self.picture_name = ''
 
         # Classes instances
-        self.search_frame = SearchFrame(self, self.links_array, self.loop, self.update_parsing_frame_data)
-        self.parsing_frame = ParsingFrame(self, self.links_array, self.loop_for_saves)
-
-    def update_parsing_frame_data(self):
-        pictures_amount = len(self.links_array)
-        self.parsing_frame.pictures_amount_var.set(pictures_amount)
-        self.parsing_frame.pictures_spin_box.configure(to=pictures_amount)
-        self.parsing_frame.correct_pictures_label_grammar(pictures_amount)
+        self.search_frame = SearchFrame(self, self.links_array, self.set_picture_name, self.loop, self.update_parsing_frame_data)
+        self.parsing_frame = ParsingFrame(self, self.links_array, self.get_picture_name, self.loop_for_saves)
     
     @property
     def links_array(self):
@@ -41,13 +36,27 @@ class UI(tk.Tk):
     def links_array(self, links_array):
         self.__links_array = links_array
 
+    def update_parsing_frame_data(self):
+        pictures_amount = len(self.links_array)
+        print(self.picture_name)
+        self.parsing_frame.pictures_amount_var.set(pictures_amount)
+        self.parsing_frame.pictures_spin_box.configure(to=pictures_amount)
+        self.parsing_frame.correct_pictures_label_grammar(pictures_amount)
+
+    def set_picture_name(self, picture_name):
+        self.picture_name = picture_name
+
+    def get_picture_name(self):
+        return self.picture_name
+
 
 class SearchFrame(ttk.Frame):
-    def __init__(self, parent, links_array, loop, update_parsing_frame_data):
+    def __init__(self, parent, links_array, set_picture_name, loop, update_parsing_frame_data):
         super().__init__(parent)
         self.loop = loop
         self.update_parsing_frame_data = update_parsing_frame_data
         self.links_array = links_array
+        self.set_picture_name = set_picture_name
         self.pack(pady=30)
 
         # Grid for widgets
@@ -63,7 +72,7 @@ class SearchFrame(ttk.Frame):
     def create_widgets(self):
         # create the widgets
         self.search_label = ttk.Label(self, text='Что ищем?')
-        search_entry = ttk.Entry(self, textvariable=self.search_data)
+        self.search_entry = ttk.Entry(self, textvariable=self.search_data)
         search_button = ttk.Button(
             master=self,
             text='Найти',
@@ -72,13 +81,14 @@ class SearchFrame(ttk.Frame):
 
         # place into the grid
         self.search_label.grid(row=0, column=0)
-        search_entry.grid(row=0, column=1, columnspan=2)
+        self.search_entry.grid(row=0, column=1, columnspan=2)
         search_button.grid(row=1, column=1)
     
     def get_entry_data(self):
         return self.search_data.get()
 
     def get_links(self):
+        self.set_picture_name(self.search_entry.get())
         links = LinksGetter(loop, self.add_links, self.get_entry_data())
         links.start()
 
@@ -88,12 +98,13 @@ class SearchFrame(ttk.Frame):
 
 
 class ParsingFrame(ttk.Frame):
-    def __init__(self, parent, links_array, loop_for_saver):
+    def __init__(self, parent, links_array, get_picture_name, loop_for_saver):
         super().__init__(parent)
         self.links_array = links_array
         self.loop_for_saver = loop_for_saver
         self.queue = Queue()
         self.refresh_ms = 25
+        self.get_picture_name = get_picture_name
         self.load_saver = None
         self.pack()
 
@@ -146,6 +157,7 @@ class ParsingFrame(ttk.Frame):
     
     def start_parsing(self):
         pictures_spin_amount = 0 if not self.pictures_spin_box.get() else int(self.pictures_spin_box.get())
+        picture_name = self.get_picture_name()
         if not is_saving_path_given(self.path_entry.get()):
             self.status_message.set('Не выбран путь сохранения')
         elif not is_pictures_amount_chosen(pictures_spin_amount):
@@ -164,7 +176,7 @@ class ParsingFrame(ttk.Frame):
             if self.load_saver is None:
                 self.begin_button['text'] = 'Отмена'
                 self.status_message.set('Выполняется сохранение...')
-                saver = PictureSaver(self.loop_for_saver, self.links_array, save_path, total_requests, self.update_queue)
+                saver = PictureSaver(self.loop_for_saver, self.links_array, picture_name, save_path, total_requests, self.update_queue)
                 self.after(self.refresh_ms, self.check_queue)
                 saver.start()
                 self.load_saver = saver
