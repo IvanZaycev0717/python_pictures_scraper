@@ -16,7 +16,15 @@ class PictureSaver:
         self.total_requests = total_requests
         self.save_path = save_path
         self.callback = callback
-        self.refresh_rate = total_requests // 100
+        self.refresh_rate = self.refresh_rate_corrector()
+    
+    def refresh_rate_corrector(self):
+        if 1 < self.total_requests < 100:
+            return 1
+        elif 100 <= self.total_requests < 1000:
+            return self.total_requests // 10
+        else:
+            return self.total_requests // 100
     
     def start(self):
         future = asyncio.run_coroutine_threadsafe(self._make_requests(), self._loop)
@@ -39,14 +47,14 @@ class PictureSaver:
         except Exception as e:
             logging.error(f"Ошибка при загрузке {url}: {response.status} {e}")
         self.completed_requests += 1
-        # if self.completed_requests % self.refresh_rate == 0 or self.completed_requests == self.total_requests:
-        #     self.callback(self.completed_requests, self.total_requests)
+        if self.completed_requests % self.refresh_rate == 0 or self.completed_requests == self.total_requests:
+            self.callback(self.completed_requests, self.total_requests)
 
 
     async def _make_requests(self):
         async with ClientSession() as session:
             reqs = []
-            for links_number in range(self.total_requests):
+            for _ in range(self.total_requests):
                 current_link = self.links_array.pop()
                 reqs.append(self._save_image(session, current_link))
             await asyncio.gather(*reqs)

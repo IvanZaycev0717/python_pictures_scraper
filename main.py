@@ -169,6 +169,7 @@ class ParsingFrame(ttk.Frame):
                 saver.start()
                 self.load_saver = saver
             else:
+                self.status_message.set('Операция отменена')
                 self.load_saver.cancel()
                 self.load_saver = None
                 self.begin_button['text'] = 'Начать'
@@ -176,9 +177,16 @@ class ParsingFrame(ttk.Frame):
     def update_progress_bar(self, progress_percent):
         if progress_percent == 100:
             self.load_saver = None
+            self.status_message.set('Картинки успешно сохранены')
+            self.links_array.clear()
+            pictures_amount = len(self.links_array)
+            self.pictures_amount_var.set(pictures_amount)
+            self.pictures_spin_box.configure(to=pictures_amount)
+            self.correct_pictures_label_grammar(pictures_amount)
             self.begin_button['text'] = 'Начать'
         else:
             self.progress_bar['value'] = progress_percent
+            self.after(self.refresh_ms, self.check_queue)
     
     def update_queue(self, completed_requests, total_requests):
         self.queue.put(int(completed_requests / total_requests * 100))
