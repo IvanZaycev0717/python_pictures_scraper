@@ -1,4 +1,5 @@
 import asyncio
+from queue import Queue
 import tkinter as tk
 from tkinter import ttk
 from tkinter import filedialog
@@ -6,24 +7,25 @@ from threading import Thread
 
 from settings import (TITLE, SIZE)
 from picture_links_parser import LinksGetter
+from pictures_saver import PictureSaver
 from validators import is_picture_amount_correct, is_saving_path_given, is_pictures_amount_chosen, is_pictures_amount_positive_int
 
 class UI(tk.Tk):
-    def __init__(self, title, size, loop):
+    def __init__(self, title, size, loop, loop_for_saver):
         # Setup
         super().__init__()
-        self.loop = loop
         self.title(title)
         self.geometry(f'{size[0]}x{size[1]}')
         self.resizable(False, False)
 
         # Atributes
+        self.loop = loop
+        self.loop_for_saves = loop_for_saver
         self.__links_array = set()
 
         # Classes instances
         self.search_frame = SearchFrame(self, self.links_array, self.loop, self.update_parsing_frame_data)
-        self.search_frame.pack(pady=30)
-        self.parsing_frame = ParsingFrame(self, self.links_array)
+        self.parsing_frame = ParsingFrame(self, self.links_array, self.loop_for_saves)
 
     def update_parsing_frame_data(self):
         pictures_amount = len(self.links_array)
@@ -46,6 +48,7 @@ class SearchFrame(ttk.Frame):
         self.loop = loop
         self.update_parsing_frame_data = update_parsing_frame_data
         self.links_array = links_array
+        self.pack(pady=30)
 
         # Grid for widgets
         self.rowconfigure((0, 1), weight=1)
@@ -85,9 +88,13 @@ class SearchFrame(ttk.Frame):
 
 
 class ParsingFrame(ttk.Frame):
-    def __init__(self, parent, links_array):
+    def __init__(self, parent, links_array, loop_for_saver):
         super().__init__(parent)
         self.links_array = links_array
+        self.loop_for_saver = loop_for_saver
+        self.queue = Queue()
+        self.refresh_ms = 25
+        self.load_saver = None
         self.pack()
 
         # Grid for widgets
@@ -115,8 +122,8 @@ class ParsingFrame(ttk.Frame):
         big_size_radio = ttk.Radiobutton(self, text='Большой', value=1, variable=self.radio_var)
         how_many_label = ttk.Label(self, text='Сколько картинок: ')
         self.pictures_spin_box = ttk.Spinbox(self, from_=1)
-        begin_button = ttk.Button(self, text='Начать', command=self.start_parsing)
-        progress_bar = ttk.Progressbar(self)
+        self.begin_button = ttk.Button(self, text='Начать', command=self.start_parsing)
+        self.progress_bar = ttk.Progressbar(self, orient='horizontal', mode='determinate')
         status_message_label = ttk.Label(self, textvariable=self.status_message)
         author_label = ttk.Label(self, text='github.com/IvanZaycev0717')
 
@@ -132,8 +139,8 @@ class ParsingFrame(ttk.Frame):
         big_size_radio.grid(row=2, column=2)
         how_many_label.grid(row=3, column=0)
         self.pictures_spin_box.grid(row=3, column=1)
-        begin_button.grid(row=4, column=1)
-        progress_bar.grid(row=5, column=0, columnspan=3)
+        self.begin_button.grid(row=4, column=1)
+        self.progress_bar.grid(row=5, column=0, columnspan=3)
         status_message_label.grid(row=6, column=0, columnspan=3)
         author_label.grid(row=7, column=2)
     
@@ -148,7 +155,52 @@ class ParsingFrame(ttk.Frame):
         elif not is_picture_amount_correct(pictures_spin_amount, self.links_array):
             self.status_message.set(f'Число картинок не может превышать {len(self.links_array)}')
         else:
-            print('else')
+            self.status_message.set('')
+            total_requests = int(self.pictures_spin_box.get())
+            pictures_mode = self.radio_var.get()
+            save_path = self.path_entry.get()
+            if pictures_mode:
+                self.get_array_of_big_pictures()
+            if self.load_saver is None:
+                self.begin_button['text'] = 'Отмена'
+                self.status_message.set('Выполняется сохранение...')
+                saver = PictureSaver(self.loop_for_saver, self.links_array, save_path, total_requests, self.update_queue)
+                self.after(self.refresh_ms, self.check_queue)
+                saver.start()
+                self.load_saver = saver
+            else:
+                self.load_saver.cancel()
+                self.load_saver = None
+                self.begin_button['text'] = 'Начать'
+    
+    def update_progress_bar(self, progress_percent):
+        if progress_percent == 100:
+            self.load_saver = None
+            self.begin_button['text'] = 'Начать'
+        else:
+            self.progress_bar['value'] = progress_percent
+    
+    def update_queue(self, completed_requests, total_requests):
+        self.queue.put(int(completed_requests / total_requests * 100))
+    
+    def check_queue(self):
+        if not self.queue.empty():
+            percent_complete = self.queue.get()
+            self.update_progress_bar(percent_complete)
+        else:
+            if self.load_saver:
+                self.after(self.refresh_ms, self.check_queue)
+    
+    def get_array_of_big_pictures(self):
+        for link in self.links_array:
+            if '_n.jpg' in link:
+                new_link = link.replace('_n.jpg', '_b.jpg')
+                self.links_array.add(new_link)
+                self.links_array.remove(link)
+            elif '_m.jpg' in link:
+                new_link = link.replace('_m.jpg', '_b.jpg')
+                self.links_array.add(new_link)
+                self.links_array.remove(link)
 
     def open_folder_dialog(self):
         folder_path = filedialog.askdirectory()
@@ -172,9 +224,13 @@ class ThreadedEventLoop(Thread):
 
 if __name__ == '__main__':
     loop = asyncio.new_event_loop()
+    loop_for_saver = asyncio.new_event_loop()
 
     asyncio_thread = ThreadedEventLoop(loop)
     asyncio_thread.start()
 
-    app = UI(TITLE, SIZE, loop)
+    asyncio_thread_saver = ThreadedEventLoop(loop_for_saver)
+    asyncio_thread_saver.start()
+
+    app = UI(TITLE, SIZE, loop, loop_for_saver)
     app.mainloop()
