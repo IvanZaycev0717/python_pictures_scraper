@@ -38,7 +38,6 @@ class UI(tk.Tk):
 
     def update_parsing_frame_data(self):
         pictures_amount = len(self.links_array)
-        print(self.picture_name)
         self.parsing_frame.pictures_amount_var.set(pictures_amount)
         self.parsing_frame.pictures_spin_box.configure(to=pictures_amount)
         self.parsing_frame.correct_pictures_label_grammar(pictures_amount)
@@ -201,7 +200,7 @@ class ParsingFrame(ttk.Frame):
             self.after(self.refresh_ms, self.check_queue)
     
     def update_queue(self, completed_requests, total_requests):
-        self.queue.put(int(completed_requests / total_requests * 100))
+        self.queue.put(int(completed_requests * 100 / total_requests))
     
     def check_queue(self):
         if not self.queue.empty():

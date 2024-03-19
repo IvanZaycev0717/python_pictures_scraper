@@ -5,6 +5,7 @@ from http import HTTPStatus
 import logging
 from typing import Callable, Optional
 from aiohttp import ClientSession
+import aiofiles
 
 
 class PictureSaver:
@@ -40,8 +41,8 @@ class PictureSaver:
             response = await session.get(url)
             if response.status == HTTPStatus.OK:
                 image_data = await response.read()
-                with open(f'{self.save_path}/{self.picture_name}{self.completed_requests}.jpg', 'wb') as file:
-                    file.write(image_data)
+                async with aiofiles.open(f'{self.save_path}/{self.picture_name}{self.completed_requests}.jpg', 'wb') as file:
+                    await file.write(image_data)
                 logging.info(f'Успешное сохранение картинки {url}')
             else:
                 logging.error(f'Ошибка при работе с картинкой {response.status}')
