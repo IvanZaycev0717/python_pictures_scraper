@@ -19,15 +19,7 @@ class PictureSaver:
         self.save_path = save_path
         self.callback = callback
         self.refresh_rate = self.refresh_rate_corrector()
-    
-    def refresh_rate_corrector(self):
-        if 1 < self.total_requests < 100:
-            return 1
-        elif 100 <= self.total_requests < 1000:
-            return self.total_requests // 10
-        else:
-            return self.total_requests // 100
-    
+
     def start(self):
         future = asyncio.run_coroutine_threadsafe(self._make_requests(), self._loop)
         self._load_saver_future = future
@@ -35,7 +27,7 @@ class PictureSaver:
     def cancel(self):
         if self._load_saver_future:
             self._loop.call_soon_threadsafe(self._load_saver_future.cancel)
-    
+
     async def _save_image(self, session, url):
         try:
             response = await session.get(url)
@@ -60,3 +52,12 @@ class PictureSaver:
                 current_link = self.links_array.pop()
                 reqs.append(self._save_image(session, current_link))
             await asyncio.gather(*reqs)
+
+    def refresh_rate_corrector(self) -> int:
+        """Correts refresher rate."""
+        if 1 < self.total_requests < 100:
+            return 1
+        elif 100 <= self.total_requests < 1000:
+            return self.total_requests // 10
+        else:
+            return self.total_requests // 100

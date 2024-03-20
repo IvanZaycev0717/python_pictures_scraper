@@ -1,17 +1,26 @@
 import asyncio
+from asyncio import AbstractEventLoop
 from queue import Queue
 import tkinter as tk
 from tkinter import ttk
 from tkinter import filedialog
 from threading import Thread
+from typing import Callable
 
+from picture_parser import LinksGetter
+from pictures_scraper import PictureSaver
 from settings import (TITLE, SIZE)
-from picture_links_parser import LinksGetter
-from pictures_saver import PictureSaver
-from validators import is_picture_amount_correct, is_saving_path_given, is_pictures_amount_chosen, is_pictures_amount_positive_int
+from validators import (is_picture_amount_correct,
+                        is_saving_path_given,
+                        is_pictures_amount_chosen,
+                        is_pictures_amount_positive_int)
+
 
 class UI(tk.Tk):
-    def __init__(self, title, size, loop, loop_for_saver):
+    """Main window of the app."""
+    def __init__(self, title: str, size: tuple[int],
+                 loop: AbstractEventLoop,
+                 loop_for_saver: AbstractEventLoop) -> None:
         # Setup
         super().__init__()
         self.title(title)
@@ -19,48 +28,62 @@ class UI(tk.Tk):
         self.resizable(False, False)
 
         # Atributes
-        self.loop = loop
-        self.loop_for_saves = loop_for_saver
-        self.__links_array = set()
-        self.picture_name = ''
+        self.loop: AbstractEventLoop = loop
+        self.loop_for_saves: AbstractEventLoop = loop_for_saver
+        self.__links_array: set[str] = set()
+        self.picture_name: str = ''
 
         # Classes instances
-        self.search_frame = SearchFrame(self, self.links_array, self.set_picture_name, self.loop, self.update_parsing_frame_data)
-        self.parsing_frame = ParsingFrame(self, self.links_array, self.get_picture_name, self.loop_for_saves)
-    
+        self.search_frame = SearchFrame(
+            parent=self,
+            links_array=self.links_array,
+            set_picture_name=self.set_picture_name,
+            loop=self.loop,
+            update_parsing_frame_data=self.update_parsing_frame_data
+            )
+        self.parsing_frame = ScraperFrame(
+            parent=self,
+            links_array=self.links_array,
+            get_picture_name=self.get_picture_name,
+            loop_for_saver=self.loop_for_saves)
+
     @property
     def links_array(self):
         return self.__links_array
-    
+
     @links_array.setter
     def links_array(self, links_array):
         self.__links_array = links_array
 
-    def update_parsing_frame_data(self):
+    def update_parsing_frame_data(self) -> None:
+        """Updates data in the parsing frame."""
         pictures_amount = len(self.links_array)
         self.parsing_frame.pictures_amount_var.set(pictures_amount)
         self.parsing_frame.pictures_spin_box.configure(to=pictures_amount)
         self.parsing_frame.correct_pictures_label_grammar(pictures_amount)
         self.parsing_frame.progress_bar['value'] = 0
 
-    def set_picture_name(self, picture_name):
+    def set_picture_name(self, picture_name) -> None:
+        """Sets name of the future pictures."""
         self.picture_name = picture_name
 
-    def get_picture_name(self):
+    def get_picture_name(self) -> None:
+        """Gets name of the current pictires."""
         return self.picture_name
-
-    def on_closing(self):
-        self.loop
-        self.destroy()
 
 
 class SearchFrame(ttk.Frame):
-    def __init__(self, parent, links_array, set_picture_name, loop, update_parsing_frame_data):
+    """Frame of searching data for the main window."""
+    def __init__(self, parent: UI, links_array: set[str],
+                 set_picture_name: Callable, loop: AbstractEventLoop,
+                 update_parsing_frame_data: Callable) -> None:
         super().__init__(parent)
-        self.loop = loop
-        self.update_parsing_frame_data = update_parsing_frame_data
-        self.links_array = links_array
-        self.set_picture_name = set_picture_name
+        self.loop: AbstractEventLoop = loop
+        self.update_parsing_frame_data: Callable = update_parsing_frame_data
+        self.links_array: set[str] = links_array
+        self.set_picture_name: Callable = set_picture_name
+
+        # Place the frame into the main window
         self.pack(expand=True, fill='both', pady=30)
 
         # Grid for widgets
@@ -72,8 +95,8 @@ class SearchFrame(ttk.Frame):
 
         self.create_widgets()
 
-    
-    def create_widgets(self):
+    def create_widgets(self) -> None:
+        """Creates widgets in the searching frame."""
         # create the widgets
         self.search_label = ttk.Label(self, text='Что ищем?')
         self.search_entry = ttk.Entry(self, textvariable=self.search_data)
@@ -89,36 +112,48 @@ class SearchFrame(ttk.Frame):
             )
         # place into the grid
         self.search_label.grid(row=0, column=1)
-        self.search_entry.grid(row=1, column=0, columnspan=3, sticky='nsew', padx=10)
+        self.search_entry.grid(row=1, column=0,
+                               columnspan=3, sticky='nsew', padx=10)
         search_button.grid(row=2, column=0, pady=5)
         clear_button.grid(row=2, column=2)
 
-    def clear_links_array(self):
+    def clear_links_array(self) -> None:
+        """Gets links array empty and update data."""
         self.links_array.clear()
         self.update_parsing_frame_data()
 
-    def get_entry_data(self):
+    def get_entry_data(self) -> str:
+        """Returns name of the request."""
         return self.search_data.get()
 
-    def get_links(self):
+    def get_links(self) -> None:
+        """Creates LinksGetter instance to get pictures links."""
         self.set_picture_name(self.search_entry.get())
         links = LinksGetter(loop, self.add_links, self.get_entry_data())
         links.start()
 
-    def add_links(self, link):
+    def add_links(self, link) -> None:
+        """Adds found links in the LinksGetter instance."""
         self.links_array.add(link)
         self.update_parsing_frame_data()
 
 
-class ParsingFrame(ttk.Frame):
-    def __init__(self, parent, links_array, get_picture_name, loop_for_saver):
+class ScraperFrame(ttk.Frame):
+    """Frame of scraper for the main window."""
+    def __init__(self, parent: UI, links_array: set[str],
+                 get_picture_name: Callable,
+                 loop_for_saver: AbstractEventLoop) -> None:
         super().__init__(parent)
-        self.links_array = links_array
-        self.loop_for_saver = loop_for_saver
-        self.queue = Queue()
+        self.links_array: set[str] = links_array
+        self.loop_for_saver: AbstractEventLoop = loop_for_saver
+        self.queue: Queue = Queue()
         self.refresh_ms = 25
-        self.get_picture_name = get_picture_name
-        self.load_saver = None
+        self.get_picture_name: Callable = get_picture_name
+
+        # Local var
+        self.load_saver: None | PictureSaver = None
+
+        # Place the frame into the main window
         self.pack(expand=True, fill='both', padx=10)
 
         # Grid for widgets
@@ -132,23 +167,34 @@ class ParsingFrame(ttk.Frame):
         self.status_message = tk.StringVar(value='Статус операций')
 
         self.create_widgets()
-    
-    def create_widgets(self):
+
+    def create_widgets(self) -> None:
+        """Creates widgets in the scraper frame."""
         # create the widgets
         found_label = ttk.Label(self, text='Найдено: ')
-        pictures_amount_label = ttk.Label(self, textvariable=self.pictures_amount_var)
+        pictures_amount_label = ttk.Label(
+            self,
+            textvariable=self.pictures_amount_var
+            )
         pictures_caption_label = ttk.Label(self, text='картинок')
         path_label = ttk.Label(self, text='Путь сохранения: ')
-        self.path_entry = ttk.Entry(self, textvariable=self.folder_path_var, state='readonly', width=25)
-        path_button = ttk.Button(self, text='...', command=self.open_folder_dialog)
+        self.path_entry = ttk.Entry(self, textvariable=self.folder_path_var,
+                                    state='readonly', width=25)
+        path_button = ttk.Button(self, text='...',
+                                 command=self.open_folder_dialog)
         size_label = ttk.Label(self, text='Размер: ')
-        small_size_radio = ttk.Radiobutton(self, text='Маленький', value=0, variable=self.radio_var)
-        big_size_radio = ttk.Radiobutton(self, text='Большой', value=1, variable=self.radio_var)
+        small_size_radio = ttk.Radiobutton(self, text='Маленький',
+                                           value=0, variable=self.radio_var)
+        big_size_radio = ttk.Radiobutton(self, text='Большой',
+                                         value=1, variable=self.radio_var)
         how_many_label = ttk.Label(self, text='Сколько картинок: ')
         self.pictures_spin_box = ttk.Spinbox(self, from_=1, width=30)
-        self.begin_button = ttk.Button(self, text='Начать', command=self.start_parsing)
-        self.progress_bar = ttk.Progressbar(self, orient='horizontal', mode='determinate')
-        status_message_label = ttk.Label(self, textvariable=self.status_message)
+        self.begin_button = ttk.Button(self, text='Начать',
+                                       command=self.start_scraper)
+        self.progress_bar = ttk.Progressbar(self, orient='horizontal',
+                                            mode='determinate')
+        status_message_label = ttk.Label(self,
+                                         textvariable=self.status_message)
         author_label = ttk.Label(self, text='github.com/IvanZaycev0717')
 
         # place into the grid
@@ -167,9 +213,11 @@ class ParsingFrame(ttk.Frame):
         self.progress_bar.grid(row=5, column=0, columnspan=3, sticky='nswe')
         status_message_label.grid(row=6, column=0, columnspan=3, pady=5)
         author_label.grid(row=7, column=0)
-    
-    def start_parsing(self):
-        pictures_spin_amount = 0 if not self.pictures_spin_box.get() else int(self.pictures_spin_box.get())
+
+    def start_scraper(self) -> None:
+        """Validates data and starts pictures scrapping."""
+        pictures_spin_amount = 0 if not self.pictures_spin_box.get() \
+            else int(self.pictures_spin_box.get())
         picture_name = self.get_picture_name()
         if not is_saving_path_given(self.path_entry.get()):
             self.status_message.set('Не выбран путь сохранения')
@@ -177,8 +225,11 @@ class ParsingFrame(ttk.Frame):
             self.status_message.set('Не выбрано число картинок для сохранения')
         elif not is_pictures_amount_positive_int(pictures_spin_amount):
             self.status_message.set('Число картинок не может быть нулевым')
-        elif not is_picture_amount_correct(pictures_spin_amount, self.links_array):
-            self.status_message.set(f'Число картинок не может превышать {len(self.links_array)}')
+        elif not is_picture_amount_correct(pictures_spin_amount,
+                                           self.links_array):
+            self.status_message.set(
+                f'Число картинок не может превышать {len(self.links_array)}'
+                )
         else:
             self.status_message.set('')
             self.total_requests = int(self.pictures_spin_box.get())
@@ -189,7 +240,13 @@ class ParsingFrame(ttk.Frame):
             if self.load_saver is None:
                 self.begin_button['text'] = 'Отмена'
                 self.status_message.set('Выполняется сохранение...')
-                saver = PictureSaver(self.loop_for_saver, self.links_array, picture_name, save_path, self.total_requests, self.update_queue)
+                saver = PictureSaver(
+                    loop=self.loop_for_saver,
+                    links_array=self.links_array,
+                    picture_name=picture_name,
+                    save_path=save_path,
+                    total_requests=self.total_requests,
+                    callback=self.update_queue)
                 self.after(self.refresh_ms, self.check_queue)
                 saver.start()
                 self.load_saver = saver
@@ -198,8 +255,9 @@ class ParsingFrame(ttk.Frame):
                 self.load_saver.cancel()
                 self.load_saver = None
                 self.begin_button['text'] = 'Начать'
-    
-    def update_progress_bar(self, progress_percent):
+
+    def update_progress_bar(self, progress_percent: int) -> None:
+        """Updates progress bar in the scrapping frame."""
         if progress_percent == 100:
             self.progress_bar['value'] = 100
             self.load_saver = None
@@ -213,12 +271,14 @@ class ParsingFrame(ttk.Frame):
         else:
             self.progress_bar['value'] = progress_percent
             self.after(self.refresh_ms, self.check_queue)
-    
-    def update_queue(self, completed_requests, total_requests):
+
+    def update_queue(self, completed_requests: int,
+                     total_requests: int) -> None:
+        """Puts into the queue complete percent."""
         self.queue.put(int(completed_requests * 100 / total_requests))
 
-    
-    def check_queue(self):
+    def check_queue(self) -> None:
+        """Check queue content and refreshes progress bar."""
         if not self.queue.empty():
             percent_complete = self.queue.get()
             self.update_progress_bar(percent_complete)
@@ -229,8 +289,9 @@ class ParsingFrame(ttk.Frame):
                 else:
                     self.after(self.refresh_ms, self.check_queue)
                     self.update_progress_bar(100)
-    
-    def get_array_of_big_pictures(self):
+
+    def get_array_of_big_pictures(self) -> None:
+        """Changes small size of the pictures into a big one."""
         for link in self.links_array:
             if '_n.jpg' in link:
                 new_link = link.replace('_n.jpg', '_b.jpg')
@@ -241,11 +302,13 @@ class ParsingFrame(ttk.Frame):
                 self.links_array.add(new_link)
                 self.links_array.remove(link)
 
-    def open_folder_dialog(self):
+    def open_folder_dialog(self) -> None:
+        """Allows users to chose a saving path."""
         folder_path = filedialog.askdirectory()
         self.folder_path_var.set(folder_path)
 
-    def correct_pictures_label_grammar(self, pictures_amount):
+    def correct_pictures_label_grammar(self, pictures_amount: int) -> str:
+        """Corrects grammar in Russian."""
         match pictures_amount:
             case 1: return 'картинка'
             case 2 | 3 | 4: return 'картинки'
@@ -253,13 +316,16 @@ class ParsingFrame(ttk.Frame):
 
 
 class ThreadedEventLoop(Thread):
-    def __init__(self, loop):
+    """Additional thread for the main thread."""
+    def __init__(self, loop: AbstractEventLoop):
         super().__init__()
-        self._loop = loop
-        self.daemon = True
+        self._loop: AbstractEventLoop = loop
+        self.daemon: bool = True
 
-    def run(self):
+    def run(self) -> None:
+        """Runs async loop."""
         self._loop.run_forever()
+
 
 if __name__ == '__main__':
     loop = asyncio.new_event_loop()
@@ -272,5 +338,4 @@ if __name__ == '__main__':
     asyncio_thread_saver.start()
 
     app = UI(TITLE, SIZE, loop, loop_for_saver)
-    app.protocol("WM_DELETE_WINDOW", app.on_closing)
     app.mainloop()
