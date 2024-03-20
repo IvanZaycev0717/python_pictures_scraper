@@ -6,7 +6,7 @@
 ## :bridge_at_night: Технологии
 :triangular_flag_on_post: Python 3.12  
 :triangular_flag_on_post: aiohttp  
-:triangular_flag_on_post: aiofiles
+:triangular_flag_on_post: aiofiles  
 :triangular_flag_on_post: beautifulsoup4  
 :triangular_flag_on_post: asyncio  
 :triangular_flag_on_post: threading  
