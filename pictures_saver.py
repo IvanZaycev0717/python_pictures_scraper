@@ -47,7 +47,7 @@ class PictureSaver:
             else:
                 logging.error(f'Ошибка при работе с картинкой {response.status}')
         except Exception as e:
-            logging.error(f"Ошибка при загрузке {url}: {response.status} {e}")
+            logging.exception(f"Ошибка при загрузке {url}: {response.status} {e}")
         self.completed_requests += 1
         if self.completed_requests % self.refresh_rate == 0 or self.completed_requests == self.total_requests:
             self.callback(self.completed_requests, self.total_requests)

@@ -41,12 +41,17 @@ class UI(tk.Tk):
         self.parsing_frame.pictures_amount_var.set(pictures_amount)
         self.parsing_frame.pictures_spin_box.configure(to=pictures_amount)
         self.parsing_frame.correct_pictures_label_grammar(pictures_amount)
+        self.parsing_frame.progress_bar['value'] = 0
 
     def set_picture_name(self, picture_name):
         self.picture_name = picture_name
 
     def get_picture_name(self):
         return self.picture_name
+
+    def on_closing(self):
+        self.loop
+        self.destroy()
 
 
 class SearchFrame(ttk.Frame):
@@ -56,10 +61,10 @@ class SearchFrame(ttk.Frame):
         self.update_parsing_frame_data = update_parsing_frame_data
         self.links_array = links_array
         self.set_picture_name = set_picture_name
-        self.pack(pady=30)
+        self.pack(expand=True, fill='both', pady=30)
 
         # Grid for widgets
-        self.rowconfigure((0, 1), weight=1)
+        self.rowconfigure((0, 1, 2), weight=1)
         self.columnconfigure((0, 1, 2), weight=1)
 
         # Variables
@@ -77,12 +82,21 @@ class SearchFrame(ttk.Frame):
             text='Найти',
             command=self.get_links,
             )
-
+        clear_button = ttk.Button(
+            master=self,
+            text='Очистить список',
+            command=self.clear_links_array,
+            )
         # place into the grid
-        self.search_label.grid(row=0, column=0)
-        self.search_entry.grid(row=0, column=1, columnspan=2)
-        search_button.grid(row=1, column=1)
-    
+        self.search_label.grid(row=0, column=1)
+        self.search_entry.grid(row=1, column=0, columnspan=3, sticky='nsew', padx=10)
+        search_button.grid(row=2, column=0, pady=5)
+        clear_button.grid(row=2, column=2)
+
+    def clear_links_array(self):
+        self.links_array.clear()
+        self.update_parsing_frame_data()
+
     def get_entry_data(self):
         return self.search_data.get()
 
@@ -105,7 +119,7 @@ class ParsingFrame(ttk.Frame):
         self.refresh_ms = 25
         self.get_picture_name = get_picture_name
         self.load_saver = None
-        self.pack()
+        self.pack(expand=True, fill='both', padx=10)
 
         # Grid for widgets
         self.rowconfigure((0, 1, 2, 3, 4, 5, 6, 7), weight=1)
@@ -125,34 +139,34 @@ class ParsingFrame(ttk.Frame):
         pictures_amount_label = ttk.Label(self, textvariable=self.pictures_amount_var)
         pictures_caption_label = ttk.Label(self, text='картинок')
         path_label = ttk.Label(self, text='Путь сохранения: ')
-        self.path_entry = ttk.Entry(self, textvariable=self.folder_path_var, state='readonly')
+        self.path_entry = ttk.Entry(self, textvariable=self.folder_path_var, state='readonly', width=25)
         path_button = ttk.Button(self, text='...', command=self.open_folder_dialog)
         size_label = ttk.Label(self, text='Размер: ')
         small_size_radio = ttk.Radiobutton(self, text='Маленький', value=0, variable=self.radio_var)
         big_size_radio = ttk.Radiobutton(self, text='Большой', value=1, variable=self.radio_var)
         how_many_label = ttk.Label(self, text='Сколько картинок: ')
-        self.pictures_spin_box = ttk.Spinbox(self, from_=1)
+        self.pictures_spin_box = ttk.Spinbox(self, from_=1, width=30)
         self.begin_button = ttk.Button(self, text='Начать', command=self.start_parsing)
         self.progress_bar = ttk.Progressbar(self, orient='horizontal', mode='determinate')
         status_message_label = ttk.Label(self, textvariable=self.status_message)
         author_label = ttk.Label(self, text='github.com/IvanZaycev0717')
 
         # place into the grid
-        found_label.grid(row=0, column=0)
+        found_label.grid(row=0, column=0, pady=10)
         pictures_amount_label.grid(row=0, column=1)
         pictures_caption_label.grid(row=0, column=2)
-        path_label.grid(row=1, column=0)
+        path_label.grid(row=1, column=0, pady=10)
         self.path_entry.grid(row=1, column=1)
         path_button.grid(row=1, column=2)
-        size_label.grid(row=2, column=0)
+        size_label.grid(row=2, column=0, pady=10)
         small_size_radio.grid(row=2, column=1)
         big_size_radio.grid(row=2, column=2)
-        how_many_label.grid(row=3, column=0)
-        self.pictures_spin_box.grid(row=3, column=1)
-        self.begin_button.grid(row=4, column=1)
-        self.progress_bar.grid(row=5, column=0, columnspan=3)
-        status_message_label.grid(row=6, column=0, columnspan=3)
-        author_label.grid(row=7, column=2)
+        how_many_label.grid(row=3, column=0, pady=10)
+        self.pictures_spin_box.grid(row=3, column=1, columnspan=2, ipadx=10)
+        self.begin_button.grid(row=4, column=1, pady=5, sticky='w')
+        self.progress_bar.grid(row=5, column=0, columnspan=3, sticky='nswe')
+        status_message_label.grid(row=6, column=0, columnspan=3, pady=5)
+        author_label.grid(row=7, column=0)
     
     def start_parsing(self):
         pictures_spin_amount = 0 if not self.pictures_spin_box.get() else int(self.pictures_spin_box.get())
@@ -167,7 +181,7 @@ class ParsingFrame(ttk.Frame):
             self.status_message.set(f'Число картинок не может превышать {len(self.links_array)}')
         else:
             self.status_message.set('')
-            total_requests = int(self.pictures_spin_box.get())
+            self.total_requests = int(self.pictures_spin_box.get())
             pictures_mode = self.radio_var.get()
             save_path = self.path_entry.get()
             if pictures_mode:
@@ -175,7 +189,7 @@ class ParsingFrame(ttk.Frame):
             if self.load_saver is None:
                 self.begin_button['text'] = 'Отмена'
                 self.status_message.set('Выполняется сохранение...')
-                saver = PictureSaver(self.loop_for_saver, self.links_array, picture_name, save_path, total_requests, self.update_queue)
+                saver = PictureSaver(self.loop_for_saver, self.links_array, picture_name, save_path, self.total_requests, self.update_queue)
                 self.after(self.refresh_ms, self.check_queue)
                 saver.start()
                 self.load_saver = saver
@@ -187,6 +201,7 @@ class ParsingFrame(ttk.Frame):
     
     def update_progress_bar(self, progress_percent):
         if progress_percent == 100:
+            self.progress_bar['value'] = 100
             self.load_saver = None
             self.status_message.set('Картинки успешно сохранены')
             self.links_array.clear()
@@ -201,6 +216,7 @@ class ParsingFrame(ttk.Frame):
     
     def update_queue(self, completed_requests, total_requests):
         self.queue.put(int(completed_requests * 100 / total_requests))
+
     
     def check_queue(self):
         if not self.queue.empty():
@@ -208,7 +224,11 @@ class ParsingFrame(ttk.Frame):
             self.update_progress_bar(percent_complete)
         else:
             if self.load_saver:
-                self.after(self.refresh_ms, self.check_queue)
+                if self.total_requests > 1:
+                    self.after(self.refresh_ms, self.check_queue)
+                else:
+                    self.after(self.refresh_ms, self.check_queue)
+                    self.update_progress_bar(100)
     
     def get_array_of_big_pictures(self):
         for link in self.links_array:
@@ -252,4 +272,5 @@ if __name__ == '__main__':
     asyncio_thread_saver.start()
 
     app = UI(TITLE, SIZE, loop, loop_for_saver)
+    app.protocol("WM_DELETE_WINDOW", app.on_closing)
     app.mainloop()

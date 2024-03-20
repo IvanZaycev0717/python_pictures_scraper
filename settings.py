@@ -5,4 +5,4 @@ PHOTO_CLASS = 'photo-list-photo-container'
 
 # Main window settings
 TITLE = 'Python Pictures Scraper'
-SIZE = (420, 300)
+SIZE = (420, 460)
