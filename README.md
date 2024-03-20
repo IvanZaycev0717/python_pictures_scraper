@@ -6,6 +6,7 @@
 ## :bridge_at_night: Технологии
 :triangular_flag_on_post: Python 3.12  
 :triangular_flag_on_post: aiohttp  
+:triangular_flag_on_post: aiofiles
 :triangular_flag_on_post: beautifulsoup4  
 :triangular_flag_on_post: asyncio  
 :triangular_flag_on_post: threading  
@@ -16,7 +17,7 @@
 | ------------- |:-------------:|:--------:|
 |![habr](https://github.com/IvanZaycev0717/the_mystery_of_the_mansion/assets/111955306/772e1cac-b1e7-49c3-b87f-5f8fb2bdfbc8)|[Ссылка](https://habr.com/ru/users/IvanZaycev0717/publications/articles/)|Статья о создании приложения|
 
-## EXE-версия приложения для Windows
+## :floppy_disk: EXE-версия приложения для Windows
 Скачать exe-версию можно по следующей ссылке:
  Сайт        | Ссылка           | 
 | ------------- |:-------------:|
