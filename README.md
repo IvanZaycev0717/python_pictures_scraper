@@ -8,7 +8,8 @@
 :triangular_flag_on_post: aiohttp  
 :triangular_flag_on_post: beautifulsoup4  
 :triangular_flag_on_post: asyncio  
-:triangular_flag_on_post: threading
+:triangular_flag_on_post: threading  
+:triangular_flag_on_post: tkinter
 
 ## :sparkler: Статья о создании и работе приложения
 Сайт        | Ссылка           |Описание|
@@ -19,7 +20,7 @@
 Скачать exe-версию можно по следующей ссылке:
  Сайт        | Ссылка           | 
 | ------------- |:-------------:|
-| ![yandex](https://github.com/IvanZaycev0717/python_interview_assistant_rus/assets/111955306/df5ff781-7cdd-4be5-9359-113b3706324e)| [Download](https://disk.yandex.ru/d/h4-_4ZhoutI5-A)|
+| ![yandex](https://github.com/IvanZaycev0717/python_interview_assistant_rus/assets/111955306/df5ff781-7cdd-4be5-9359-113b3706324e)| [Download](https://disk.yandex.ru/d/5dpMIPn9AT0SBw)|
 
 # :computer: Установка
 :iphone: **для Windows**
