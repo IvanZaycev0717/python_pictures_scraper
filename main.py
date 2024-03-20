@@ -7,6 +7,7 @@ from tkinter import filedialog
 from threading import Thread
 from typing import Callable
 
+
 from picture_parser import PictureLinksParser
 from pictures_scraper import PictureScraperSaver
 from settings import (TITLE, SIZE)
