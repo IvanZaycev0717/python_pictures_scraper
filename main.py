@@ -7,8 +7,8 @@ from tkinter import filedialog
 from threading import Thread
 from typing import Callable
 
-from picture_parser import LinksGetter
-from pictures_scraper import PictureSaver
+from picture_parser import PictureLinksParser
+from pictures_scraper import PictureScraperSaver
 from settings import (TITLE, SIZE)
 from validators import (is_picture_amount_correct,
                         is_saving_path_given,
@@ -127,13 +127,13 @@ class SearchFrame(ttk.Frame):
         return self.search_data.get()
 
     def get_links(self) -> None:
-        """Creates LinksGetter instance to get pictures links."""
+        """Creates PictureLinksParser instance to get pictures links."""
         self.set_picture_name(self.search_entry.get())
-        links = LinksGetter(loop, self.add_links, self.get_entry_data())
+        links = PictureLinksParser(loop, self.add_links, self.get_entry_data())
         links.start()
 
     def add_links(self, link) -> None:
-        """Adds found links in the LinksGetter instance."""
+        """Adds found links in the PictureLinksParser instance."""
         self.links_array.add(link)
         self.update_parsing_frame_data()
 
@@ -151,7 +151,7 @@ class ScraperFrame(ttk.Frame):
         self.get_picture_name: Callable = get_picture_name
 
         # Local var
-        self.load_saver: None | PictureSaver = None
+        self.load_saver: None | PictureScraperSaver = None
 
         # Place the frame into the main window
         self.pack(expand=True, fill='both', padx=10)
@@ -240,7 +240,7 @@ class ScraperFrame(ttk.Frame):
             if self.load_saver is None:
                 self.begin_button['text'] = 'Отмена'
                 self.status_message.set('Выполняется сохранение...')
-                saver = PictureSaver(
+                saver = PictureScraperSaver(
                     loop=self.loop_for_saver,
                     links_array=self.links_array,
                     picture_name=picture_name,
