@@ -1,12 +1,11 @@
 # :flower_playing_cards: Python Pictures Scraper
 **Python Pictures Scraper** - асинхронный парсер и скрапер картинок с графическим интерфейсом
 
-![2024-03-20 12-33-51](https://github.com/IvanZaycev0717/python_pictures_scraper/assets/111955306/95dc13f8-a6b2-451d-8227-fa62cb435dd7)
+![2024-03-21 09-56-44](https://github.com/IvanZaycev0717/python_pictures_scraper/assets/111955306/420cc379-c5d4-4185-acdb-53f83326b6d3)
 
 ## :bridge_at_night: Технологии
 :triangular_flag_on_post: Python 3.12  
 :triangular_flag_on_post: aiohttp  
-:triangular_flag_on_post: aiofiles  
 :triangular_flag_on_post: beautifulsoup4  
 :triangular_flag_on_post: asyncio  
 :triangular_flag_on_post: threading  

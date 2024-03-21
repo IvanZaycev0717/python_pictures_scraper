@@ -262,6 +262,7 @@ class ScraperFrame(ttk.Frame):
         if progress_percent == 100:
             self.progress_bar['value'] = 100
             self.load_saver = None
+            self.pictures_spin_box.delete(0, 'end')
             self.status_message.set('Картинки успешно сохранены')
             self.links_array.clear()
             pictures_amount = len(self.links_array)
