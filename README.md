@@ -20,7 +20,7 @@
 Скачать exe-версию можно по следующей ссылке:
  Сайт        | Ссылка           | 
 | ------------- |:-------------:|
-| ![yandex](https://github.com/IvanZaycev0717/python_interview_assistant_rus/assets/111955306/df5ff781-7cdd-4be5-9359-113b3706324e)| [Download](https://disk.yandex.ru/d/5dpMIPn9AT0SBw)|
+| ![yandex](https://github.com/IvanZaycev0717/python_interview_assistant_rus/assets/111955306/df5ff781-7cdd-4be5-9359-113b3706324e)| [Download](https://disk.yandex.ru/d/w0ciYZyeZoBQ8g)|
 
 # :computer: Установка
 :iphone: **для Windows**
