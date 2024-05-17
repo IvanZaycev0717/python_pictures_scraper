@@ -1,6 +1,7 @@
 import asyncio
 from asyncio import AbstractEventLoop
 from concurrent.futures import Future
+import os
 from http import HTTPStatus
 import logging
 from typing import Callable
@@ -41,8 +42,9 @@ class PictureScraperSaver:
             response = await session.get(url)
             if response.status == HTTPStatus.OK:
                 image_data = await response.read()
-                pic_file = f'{self.picture_name}{self.completed_requests}'
-                with open(f'{self.save_path}/{pic_file}.jpg', 'wb') as file:
+                pic_file = f'{self.picture_name}{self.completed_requests}.jpg'
+                file_path = os.path.join(self.save_path, pic_file)
+                with open(file_path, 'wb') as file:
                     file.write(image_data)
                 logging.info(f'Успешное сохранение картинки {url}')
             else:
