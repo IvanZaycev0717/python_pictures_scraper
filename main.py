@@ -68,7 +68,7 @@ class UI(tk.Tk):
         """Sets name of the future pictures."""
         self.picture_name = picture_name
 
-    def get_picture_name(self) -> None:
+    def get_picture_name(self) -> str:
         """Gets name of the current pictires."""
         return self.picture_name
 
